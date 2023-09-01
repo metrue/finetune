@@ -1,4 +1,4 @@
-import OpenAI from 'openai'
+const OpenAI = require('openai')
 //const fs = require('fs')
 const core = require('@actions/core')
 //const github = require('@actions/github')
