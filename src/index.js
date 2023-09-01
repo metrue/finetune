@@ -6,41 +6,34 @@ const fs = require('fs')
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
 
 const untilFilesProcessed = async (openai, fileId) => {
-  let fileProcessed = false
-  const res = await openai.files.list()
-  for (const f of res.data) {
-    const { status, id, purpose } = f
-    // eslint-disable-next-line
-    console.log(`${id} ${purpose} ${status}`)
-    if (id === fileId && status === 'processed') {
-      fileProcessed = true
+  // eslint-disable-next-line
+  while (true) {
+    const res = await openai.files.list()
+    for (const f of res.data) {
+      const { status, id, purpose } = f
+      // eslint-disable-next-line
+      console.log(`${id} ${purpose} ${status}`)
+      if (id === fileId && status === 'processed') {
+        return
+      }
     }
-  }
 
-  if (!fileProcessed) {
     await sleep(30000)
-    return untilFilesProcessed(openai, fileId)
   }
-  return true
 }
 
 const untilFineTuningJobCompleted = async (openai, jobId) => {
-  let jobCompleted = false
-  let modelTrained = ''
-  const res = await openai.fineTunes.list()
-  for (const job of res.data) {
-    const { id, status, model } = job
-    if (id === jobId && status == 'succeeded`') {
-      jobCompleted = true
-      modelTrained = model
+  // eslint-disable-next-line
+  while (true) {
+    const res = await openai.fineTunes.list()
+    for (const job of res.data) {
+      const { id, status, model } = job
+      if (id === jobId && status == 'succeeded`') {
+        return model
+      }
     }
-  }
-
-  if (!jobCompleted) {
     await sleep(30000)
-    return untilFineTuningJobCompleted(openai, jobId)
   }
-  return modelTrained
 }
 
 const main = async () => {
