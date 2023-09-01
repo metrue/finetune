@@ -1,0 +1,17 @@
+name: 'finetue'
+description: 'github actions for OpenAI fine tuning'
+inputs:
+  openai-api-key:
+    description: 'the OpenAI API key'
+    required: true
+    default: ''
+  dataset:  # id of input
+    description: 'the path to dataset json file'
+    required: true
+    default: './dataset.json'
+outputs:
+  model: # id of output
+    description: 'the model trained out'
+runs:
+  using: 'node16'
+  main: 'index.js'
