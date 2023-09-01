@@ -1,11 +1,11 @@
-import OpenAI from 'openai'
-import core from '@actions/core'
-import fs from 'fs'
+const OpenAI = require('openai')
+const core = require('@actions/core')
+const fs = require('fs')
 //const github = require('@actions/github')
 
-const sleep = (delay: number) => new Promise((resolve) => setTimeout(resolve, delay))
+const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
 
-const untilFilesProcessed = async (openai: OpenAI, fileId: string): Promise<boolean> => {
+const untilFilesProcessed = async (openai, fileId) => {
   let fileProcessed = false
   const res = await openai.files.list()
   for (const f of res.data) {
@@ -24,7 +24,7 @@ const untilFilesProcessed = async (openai: OpenAI, fileId: string): Promise<bool
   return true
 }
 
-const untilFineTuningJobCompleted = async (openai: OpenAI, jobId: string): Promise<string> => {
+const untilFineTuningJobCompleted = async (openai, jobId) => {
   let jobCompleted = false
   let modelTrained = ''
   const res = await openai.fineTunes.list()

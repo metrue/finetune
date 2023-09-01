@@ -8436,113 +8436,6 @@ module.exports.implForWrapper = function (wrapper) {
 
 /***/ }),
 
-/***/ 4473:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const openai_1 = __importDefault(__nccwpck_require__(5861));
-const core_1 = __importDefault(__nccwpck_require__(8076));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
-//const github = require('@actions/github')
-const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
-const untilFilesProcessed = (openai, fileId) => __awaiter(void 0, void 0, void 0, function* () {
-    let fileProcessed = false;
-    const res = yield openai.files.list();
-    for (const f of res.data) {
-        const { status, id, purpose } = f;
-        // eslint-disable-next-line
-        console.log(`${id} ${purpose} ${status}`);
-        if (id === fileId && status !== 'processed') {
-            fileProcessed = true;
-        }
-    }
-    if (!fileProcessed) {
-        yield sleep(30000);
-        return untilFilesProcessed(openai, fileId);
-    }
-    return true;
-});
-const untilFineTuningJobCompleted = (openai, jobId) => __awaiter(void 0, void 0, void 0, function* () {
-    let jobCompleted = false;
-    let modelTrained = '';
-    const res = yield openai.fineTunes.list();
-    for (const job of res.data) {
-        const { id, status, model } = job;
-        if (id === jobId && status == 'succeeded`') {
-            jobCompleted = true;
-            modelTrained = model;
-        }
-    }
-    if (!jobCompleted) {
-        yield sleep(30000);
-        return untilFineTuningJobCompleted(openai, jobId);
-    }
-    return modelTrained;
-});
-const main = () => __awaiter(void 0, void 0, void 0, function* () {
-    // `who-to-greet` input defined in action metadata file
-    const dataset = core_1.default.getInput('dataset');
-    const OPENAI_API_KEY = core_1.default.getInput('openai-api-key');
-    const OPENAI_API_ORG = core_1.default.getInput('openai-api-org');
-    // eslint-disable-next-line
-    const openai = new openai_1.default({
-        apiKey: OPENAI_API_KEY,
-        dangerouslyAllowBrowser: true,
-        organization: OPENAI_API_ORG,
-    });
-    const fd = fs_1.default.createReadStream(dataset, 'utf8');
-    const res = yield openai.files.create({
-        file: fd,
-        purpose: 'fine-tune',
-    }, {
-        stream: true,
-    });
-    // eslint-disable-next-line
-    console.log(`dataset uploaded: ${res.filename} ${res.id} ${res.status}`);
-    if (res.id) {
-        yield untilFilesProcessed(openai, res.id);
-    }
-    else {
-        throw new Error(`no id found for the dataset uploaded`);
-    }
-    const job = yield openai.fineTuning.jobs.create({
-        model: 'gpt-3.5-turbo',
-        training_file: res.id,
-    });
-    if (job.id) {
-        const model = yield untilFineTuningJobCompleted(openai, job.id);
-        core_1.default.setOutput('model', model);
-    }
-    else {
-        throw new Error(`no id found for the fine tuning job`);
-    }
-});
-main()
-    .then((data) => {
-    // eslint-disable-next-line
-    console.log(data);
-})
-    .catch((e) => {
-    core_1.default.setFailed(e.message);
-});
-
-
-/***/ }),
-
 /***/ 9272:
 /***/ ((module) => {
 
@@ -12502,12 +12395,109 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(4473);
-/******/ 	module.exports = __webpack_exports__;
-/******/ 	
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+const OpenAI = __nccwpck_require__(5861)
+const core = __nccwpck_require__(8076)
+const fs = __nccwpck_require__(7147)
+//const github = require('@actions/github')
+
+const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+
+const untilFilesProcessed = async (openai, fileId) => {
+  let fileProcessed = false
+  const res = await openai.files.list()
+  for (const f of res.data) {
+    const { status, id, purpose } = f
+    // eslint-disable-next-line
+    console.log(`${id} ${purpose} ${status}`)
+    if (id === fileId && status !== 'processed') {
+      fileProcessed = true
+    }
+  }
+
+  if (!fileProcessed) {
+    await sleep(30000)
+    return untilFilesProcessed(openai, fileId)
+  }
+  return true
+}
+
+const untilFineTuningJobCompleted = async (openai, jobId) => {
+  let jobCompleted = false
+  let modelTrained = ''
+  const res = await openai.fineTunes.list()
+  for (const job of res.data) {
+    const { id, status, model } = job
+    if (id === jobId && status == 'succeeded`') {
+      jobCompleted = true
+      modelTrained = model
+    }
+  }
+
+  if (!jobCompleted) {
+    await sleep(30000)
+    return untilFineTuningJobCompleted(openai, jobId)
+  }
+  return modelTrained
+}
+
+const main = async () => {
+  // `who-to-greet` input defined in action metadata file
+  const dataset = core.getInput('dataset')
+  const OPENAI_API_KEY = core.getInput('openai-api-key')
+  const OPENAI_API_ORG = core.getInput('openai-api-org')
+  // eslint-disable-next-line
+  const openai = new OpenAI({
+    apiKey: OPENAI_API_KEY,
+    dangerouslyAllowBrowser: true,
+    organization: OPENAI_API_ORG,
+  })
+
+  const fd = fs.createReadStream(dataset, 'utf8')
+  const res = await openai.files.create(
+    {
+      file: fd,
+      purpose: 'fine-tune',
+    },
+    {
+      stream: true,
+    },
+  )
+
+  // eslint-disable-next-line
+  console.log(`dataset uploaded: ${res.filename} ${res.id} ${res.status}`)
+  if (res.id) {
+    await untilFilesProcessed(openai, res.id)
+  } else {
+    throw new Error(`no id found for the dataset uploaded`)
+  }
+
+  const job = await openai.fineTuning.jobs.create({
+    model: 'gpt-3.5-turbo',
+    training_file: res.id,
+  })
+
+  if (job.id) {
+    const model = await untilFineTuningJobCompleted(openai, job.id)
+    core.setOutput('model', model)
+  } else {
+    throw new Error(`no id found for the fine tuning job`)
+  }
+}
+
+main()
+  .then((data) => {
+    // eslint-disable-next-line
+    console.log(data)
+  })
+  .catch((e) => {
+    core.setFailed(e.message)
+  })
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;
