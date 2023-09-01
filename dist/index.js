@@ -8441,6 +8441,15 @@ module.exports.implForWrapper = function (wrapper) {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -8450,9 +8459,9 @@ const core_1 = __importDefault(__nccwpck_require__(8076));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 //const github = require('@actions/github')
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
-const untilFilesProcessed = async (openai, fileId) => {
+const untilFilesProcessed = (openai, fileId) => __awaiter(void 0, void 0, void 0, function* () {
     let fileProcessed = false;
-    const res = await openai.files.list();
+    const res = yield openai.files.list();
     for (const f of res.data) {
         const { status, id, purpose } = f;
         // eslint-disable-next-line
@@ -8462,15 +8471,15 @@ const untilFilesProcessed = async (openai, fileId) => {
         }
     }
     if (!fileProcessed) {
-        await sleep(30000);
+        yield sleep(30000);
         return untilFilesProcessed(openai, fileId);
     }
     return true;
-};
-const untilFineTuningJobCompleted = async (openai, jobId) => {
+});
+const untilFineTuningJobCompleted = (openai, jobId) => __awaiter(void 0, void 0, void 0, function* () {
     let jobCompleted = false;
     let modelTrained = '';
-    const res = await openai.fineTunes.list();
+    const res = yield openai.fineTunes.list();
     for (const job of res.data) {
         const { id, status, model } = job;
         if (id === jobId && status == 'succeeded`') {
@@ -8479,12 +8488,12 @@ const untilFineTuningJobCompleted = async (openai, jobId) => {
         }
     }
     if (!jobCompleted) {
-        await sleep(30000);
+        yield sleep(30000);
         return untilFineTuningJobCompleted(openai, jobId);
     }
     return modelTrained;
-};
-const main = async () => {
+});
+const main = () => __awaiter(void 0, void 0, void 0, function* () {
     // `who-to-greet` input defined in action metadata file
     const dataset = core_1.default.getInput('dataset');
     const OPENAI_API_KEY = core_1.default.getInput('openai-api-key');
@@ -8496,7 +8505,7 @@ const main = async () => {
         organization: OPENAI_API_ORG,
     });
     const fd = fs_1.default.createReadStream(dataset, 'utf8');
-    const res = await openai.files.create({
+    const res = yield openai.files.create({
         file: fd,
         purpose: 'fine-tune',
     }, {
@@ -8505,23 +8514,23 @@ const main = async () => {
     // eslint-disable-next-line
     console.log(`dataset uploaded: ${res.filename} ${res.id} ${res.status}`);
     if (res.id) {
-        await untilFilesProcessed(openai, res.id);
+        yield untilFilesProcessed(openai, res.id);
     }
     else {
         throw new Error(`no id found for the dataset uploaded`);
     }
-    const job = await openai.fineTuning.jobs.create({
+    const job = yield openai.fineTuning.jobs.create({
         model: 'gpt-3.5-turbo',
         training_file: res.id,
     });
     if (job.id) {
-        const model = await untilFineTuningJobCompleted(openai, job.id);
+        const model = yield untilFineTuningJobCompleted(openai, job.id);
         core_1.default.setOutput('model', model);
     }
     else {
         throw new Error(`no id found for the fine tuning job`);
     }
-};
+});
 main()
     .then((data) => {
     // eslint-disable-next-line
