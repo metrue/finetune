@@ -5,6 +5,10 @@ inputs:
     description: 'the OpenAI API key'
     required: true
     default: ''
+  openai-api-org:
+    description: 'the OpenAI org for your api'
+    required: false
+    default: ''
   dataset:  # id of input
     description: 'the path to dataset json file'
     required: true
