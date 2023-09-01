@@ -25,6 +25,8 @@ const main = async () => {
   // eslint-disable-next-line
   console.log(`dataset: ${dataset}`)
 
+  core.setOutput('afakemodel')
+
   /*
   res = await openai.files.create(
     {
