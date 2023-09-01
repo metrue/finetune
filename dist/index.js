@@ -12462,7 +12462,7 @@ const main = async () => {
       purpose: 'fine-tune',
     },
     {
-      stream: true,
+      stream: false, // it has to be false to get the id of file uploaded
     },
   )
 
