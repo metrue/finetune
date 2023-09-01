@@ -12412,7 +12412,7 @@ const untilFilesProcessed = async (openai, fileId) => {
     const { status, id, purpose } = f
     // eslint-disable-next-line
     console.log(`${id} ${purpose} ${status}`)
-    if (id === fileId && status !== 'processed') {
+    if (id === fileId && status === 'processed') {
       fileProcessed = true
     }
   }
