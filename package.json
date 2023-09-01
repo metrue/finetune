@@ -2,9 +2,10 @@
   "name": "finetune",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "ncc build actions/upload-dataset/src/index.js -o actions/upload-dataset/dist/ && ncc build actions/check-dataset/src/index.js -o actions/check-dataset/dist/  &&  ncc build actions/create-fine-tuning-job/src/index.js -o actions/create-fine-tuning-job/dist/ ",
     "lint": "eslint ."
   },
   "author": "Minghe Huang",
