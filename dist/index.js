@@ -12401,46 +12401,16 @@ var __webpack_exports__ = {};
 const OpenAI = __nccwpck_require__(5861)
 const core = __nccwpck_require__(8076)
 const fs = __nccwpck_require__(7147)
-//const github = require('@actions/github')
 
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
-
-const untilFilesProcessed = async (openai, fileId) => {
-  // eslint-disable-next-line
-  while (true) {
-    const res = await openai.files.list()
-    for (const f of res.data) {
-      const { status, id, purpose } = f
-      // eslint-disable-next-line
-      console.log(`${id} ${purpose} ${status}`)
-      if (id === fileId && status === 'processed') {
-        return
-      }
-    }
-
-    await sleep(30000)
-  }
-}
-
-const untilFineTuningJobCompleted = async (openai, jobId) => {
-  // eslint-disable-next-line
-  while (true) {
-    const res = await openai.fineTunes.list()
-    for (const job of res.data) {
-      const { id, status, model } = job
-      if (id === jobId && status == 'succeeded`') {
-        return model
-      }
-    }
-    await sleep(30000)
-  }
-}
 
 const main = async () => {
   // `who-to-greet` input defined in action metadata file
   const dataset = core.getInput('dataset')
   const OPENAI_API_KEY = core.getInput('openai-api-key')
   const OPENAI_API_ORG = core.getInput('openai-api-org')
+  const datasetWaitTime = core.getInput('dataset-wait-time')
+  const jobWaitTime = core.getInput('job-wait-time')
   // eslint-disable-next-line
   const openai = new OpenAI({
     apiKey: OPENAI_API_KEY,
@@ -12448,6 +12418,7 @@ const main = async () => {
     organization: OPENAI_API_ORG,
   })
 
+  // upload dataset
   const fd = fs.createReadStream(dataset, 'utf8')
   const res = await openai.files.create(
     {
@@ -12461,22 +12432,91 @@ const main = async () => {
 
   // eslint-disable-next-line
   console.log(`dataset uploaded: ${res.filename} ${res.id} ${res.status}`)
-  if (res.id) {
-    await untilFilesProcessed(openai, res.id)
-  } else {
-    throw new Error(`no id found for the dataset uploaded`)
+  if (!res.id) {
+    throw new Error(`no id found for the fine tuning job`)
   }
 
+  const INTERVAL = 10000 // 10s
+
+  let datasetWait = 0
+  let fileProcessed = false
+  while (datasetWait < datasetWaitTime) {
+    await sleep(INTERVAL)
+    datasetWait += INTERVAL
+    const result = await openai.files.list()
+    for (const f of result.data) {
+      if (f.id === res.id) {
+        if (f.status === 'processed') {
+          // eslint-disable-next-line
+          console.log(`${f.id} ${f.purpose} ${f.status}`)
+          fileProcessed = true
+          break
+        }
+        if (f.status === 'error') {
+          // eslint-disable-next-line
+          console.log(`${f.id} ${f.purpose} ${f.status} ${f.status_details}`)
+          throw new Error(`dataset processed failed: ${f.status_details}`)
+        }
+      }
+    }
+    if (fileProcessed) {
+      break
+    }
+  }
+
+  if (!fileProcessed) {
+    throw new Error(`tried more than ${datasetWaitTime}, but dataset not ready`)
+  }
+
+  // create fine tuning job
+  // eslint-disable-next-line
   const job = await openai.fineTuning.jobs.create({
     model: 'gpt-3.5-turbo',
     training_file: res.id,
   })
 
-  if (job.id) {
-    const model = await untilFineTuningJobCompleted(openai, job.id)
-    core.setOutput('model', model)
-  } else {
-    throw new Error(`no id found for the fine tuning job`)
+  if (!job.id) {
+    throw new Error(`no job found for the fine tuning job`)
+  }
+
+  let jobWait = 0
+  let terminated = false
+  let jobSucceeded = false
+  while (jobWait < jobWaitTime) {
+    await sleep(INTERVAL)
+    jobWait += INTERVAL
+
+    const res = await openai.fineTunes.list()
+    for (const job of res.data) {
+      const { id, status, model } = job
+      if (id === job.id) {
+        /*
+         * The current status of the fine-tuning job, which can be either `created`,
+         * `pending`, `running`, `succeeded`, `failed`, or `cancelled`.
+         */
+        core.setOutput('model', model)
+        core.setOutput('status', status)
+        // eslint-disable-next-line
+        console.log(`${id} ${model} ${status}`)
+        if (status === 'succeeded') {
+          terminated = true
+          jobSucceeded = true
+          break
+        }
+        if (status === 'failed' || status === 'cancelled') {
+          terminated = true
+          jobSucceeded = false
+          break
+        }
+      }
+    }
+
+    if (terminated) {
+      break
+    }
+  }
+  if (!jobSucceeded) {
+    throw new Error(`job not succeeded after ${jobWait} time elapsed`)
   }
 }
 
