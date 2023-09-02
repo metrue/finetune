@@ -14,7 +14,8 @@ a GitHub action for GPT fine tuning.
           dataset: './dataset.json'
           openai-api-key: ${{ secrets.OPEN_AI_KEY }}
           openai-api-org: ${{ secrets.OPEN_AI_ORG }}
-          wait-job-completed: true
+          dataset-wait-time: 60000
+          job-wait-time: 60000
       - name: use the model
         run: echo "The model is ${{ steps.finetune.outputs.model }} ${{ steps.finetune.outputs.status }}"
 ```
