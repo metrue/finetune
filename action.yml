@@ -13,9 +13,46 @@ inputs:
     description: 'the path to dataset json file'
     required: true
     default: './dataset.json'
+  wait-dataset-processed:
+    description: 'wait the dataset processed'
+    required: false
+    default: true
+  wait-job-completed:
+    description: 'wait for the model trained'
+    required: false
+    default: false
 outputs:
-  model: # id of output
+  model:
     description: 'the model trained out'
+  status: 
+    description: 'the status of the fine tuning job'
 runs:
-  using: 'node16'
-  main: 'dist/index.js'
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 16
+    - name: 'upload dataset'
+      uses: './actions/upload-dataset'
+      id: upload-dataset
+      with:
+        openai-api-key: ${{inputs.openai-api-key }}
+        openai-api-org: ${{inputs.openai-api-org }}
+        wait: ${{inputs.wait-dataset-processed }}
+        dataset: ${{inputs.dataset}}
+    - name: 'check dataset status'
+      uses: './actions/check-dataset'
+      id: check-dataset
+      with:
+        openai-api-key: ${{inputs.openai-api-key }}
+        openai-api-org: ${{inputs.openai-api-org }}
+        file-id: ${{ steps.upload-dataset.outputs.file-id }}
+    - name: 'create fine tuning job'
+      uses: './actions/create-fine-tuning-job'
+      with:
+        openai-api-key: ${{inputs.openai-api-key }}
+        openai-api-org: ${{inputs.openai-api-org }}
+        file-id: ${{ steps.upload-dataset.outputs.file-id }}
+        file-status: ${{ steps.upload-dataset.outputs.file-status }}
+        wait: ${{ inputs.wait-job-completed }}
+

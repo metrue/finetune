@@ -1,0 +1,22 @@
+name: 'ci'
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  flow:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - uses: actions/checkout@v2
+      - name: fine tune
+        id: finetune
+        uses: ./
+        with:
+          dataset: './dataset.json'
+          openai-api-key: ${{ secrets.OPEN_AI_KEY }}
+          openai-api-org: ${{ secrets.OPEN_AI_ORG }}
+          wait-dataset-processed: true
+          wait-job-completed: true
+      - name: use the model
+        run: echo "The model is ${{ steps.finetune.outputs.model }} ${{ steps.finetune.outputs.status }}"

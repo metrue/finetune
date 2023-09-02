@@ -1,0 +1,27 @@
+name: 'upload-dataset'
+description: 'upload dataset to OpenAI'
+inputs:
+  openai-api-key:
+    description: 'the OpenAI API key'
+    required: true
+    default: ''
+  openai-api-org:
+    description: 'the OpenAI org for your api'
+    required: false
+    default: ''
+  dataset:  # id of input
+    description: 'the path to dataset json file'
+    required: true
+    default: './dataset.json'
+  wait:
+    description: 'wait the file to be processed'
+    required: false
+    default: false
+outputs:
+  file-id: # id of output
+    description: 'the id of file uploaded'
+  status-status:
+    description: 'the status of the file uploaded'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
